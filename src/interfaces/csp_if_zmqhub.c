@@ -36,8 +36,8 @@ int csp_zmqhub_tx(csp_iface_t * iface, uint16_t via, csp_packet_t * packet, int 
 
 	csp_id_prepend(packet);
 
-	/** 
-	 * While a ZMQ context is thread safe, sockets are NOT threadsafe, so by sharing drv->publisher, we 
+	/**
+	 * While a ZMQ context is thread safe, sockets are NOT threadsafe, so by sharing drv->publisher, we
 	 * need to have a lock around any calls that uses that */
 	pthread_mutex_lock(&lock);
 	int result = zmq_send(drv->publisher, packet->frame_begin, packet->frame_length, 0);
@@ -142,7 +142,7 @@ int csp_zmqhub_init_w_endpoints(uint16_t addr,
 	uint16_t * rxfilter = NULL;
 	unsigned int rxfilter_count = 0;
 
-	return csp_zmqhub_init_w_name_endpoints_rxfilter(NULL,
+	return csp_zmqhub_init_w_name_endpoints_rxfilter(NULL, addr,
 													 rxfilter, rxfilter_count,
 													 publisher_endpoint,
 													 subscriber_endpoint,
@@ -150,7 +150,7 @@ int csp_zmqhub_init_w_endpoints(uint16_t addr,
 													 return_interface);
 }
 
-int csp_zmqhub_init_w_name_endpoints_rxfilter(const char * ifname,
+int csp_zmqhub_init_w_name_endpoints_rxfilter(const char * ifname, uint16_t addr,
 											  const uint16_t rxfilter[], unsigned int rxfilter_count,
 											  const char * publish_endpoint,
 											  const char * subscribe_endpoint,
@@ -171,11 +171,12 @@ int csp_zmqhub_init_w_name_endpoints_rxfilter(const char * ifname,
 	drv->iface.driver_data = drv;
 	drv->iface.nexthop = csp_zmqhub_tx;
 	drv->iface.mtu = CSP_ZMQ_MTU;  // there is actually no 'max' MTU on ZMQ, but assuming the other end is based on the same code
+	drv->iface.addr = addr;
 
 	drv->context = zmq_ctx_new();
 	assert(drv->context != NULL);
 
-	//csp_print("INIT %s: pub(tx): [%s], sub(rx): [%s], rx filters: %u", drv->iface.name, publish_endpoint, subscribe_endpoint, rxfilter_count);
+	// csp_print("INIT %s: pub(tx): [%s], sub(rx): [%s], rx filters: %u", drv->iface.name, publish_endpoint, subscribe_endpoint, rxfilter_count);
 
 	/* Publisher (TX) */
 	drv->publisher = zmq_socket(drv->context, ZMQ_PUB);
@@ -214,7 +215,7 @@ int csp_zmqhub_init_w_name_endpoints_rxfilter(const char * ifname,
 }
 
 int csp_zmqhub_init_filter2(const char * ifname, const char * host, uint16_t addr, uint16_t netmask, int promisc, csp_iface_t ** return_interface) {
-	
+
 	char pub[100];
 	csp_zmqhub_make_endpoint(host, CSP_ZMQPROXY_SUBSCRIBE_PORT, pub, sizeof(pub));
 
@@ -235,11 +236,12 @@ int csp_zmqhub_init_filter2(const char * ifname, const char * host, uint16_t add
 	drv->iface.driver_data = drv;
 	drv->iface.nexthop = csp_zmqhub_tx;
 	drv->iface.mtu = CSP_ZMQ_MTU;  // there is actually no 'max' MTU on ZMQ, but assuming the other end is based on the same code
+	drv->iface.addr = addr;
 
 	drv->context = zmq_ctx_new();
 	assert(drv->context != NULL);
 
-	//csp_print("  ZMQ init %s: pub(tx): [%s], sub(rx): [%s]\n", drv->iface.name, pub, sub);
+	// csp_print("  ZMQ init %s: pub(tx): [%s], sub(rx): [%s]\n", drv->iface.name, pub, sub);
 
 	/* Publisher (TX) */
 	drv->publisher = zmq_socket(drv->context, ZMQ_PUB);
@@ -251,13 +253,12 @@ int csp_zmqhub_init_filter2(const char * ifname, const char * host, uint16_t add
 
 	/* Generate filters */
 	uint16_t hostmask = (1 << (csp_id_get_host_bits() - netmask)) - 1;
-	
+
 	/* Connect to server */
 	ret = zmq_connect(drv->publisher, pub);
 	assert(ret == 0);
 	zmq_connect(drv->subscriber, sub);
 	assert(ret == 0);
-
 
 	if (promisc) {
 
@@ -272,7 +273,7 @@ int csp_zmqhub_init_filter2(const char * ifname, const char * host, uint16_t add
 		static uint16_t filt[4][3];
 
 		for (int i = 0; i < 4; i++) {
-			//int i = CSP_PRIO_NORM;
+			// int i = CSP_PRIO_NORM;
 			filt[i][0] = __builtin_bswap16((i << 14) | addr);
 			filt[i][1] = __builtin_bswap16((i << 14) | addr | hostmask);
 			filt[i][2] = __builtin_bswap16((i << 14) | 16383);
@@ -280,9 +281,7 @@ int csp_zmqhub_init_filter2(const char * ifname, const char * host, uint16_t add
 			ret = zmq_setsockopt(drv->subscriber, ZMQ_SUBSCRIBE, &filt[i][1], 2);
 			ret = zmq_setsockopt(drv->subscriber, ZMQ_SUBSCRIBE, &filt[i][2], 2);
 		}
-
-	} 
-
+	}
 
 	/* Start RX thread */
 	ret = pthread_attr_init(&attributes);
@@ -301,6 +300,5 @@ int csp_zmqhub_init_filter2(const char * ifname, const char * host, uint16_t add
 
 	return CSP_ERR_NONE;
 }
-
 
 #endif  // CSP_HAVE_LIBZMQ
