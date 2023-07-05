@@ -13,7 +13,7 @@ if(NOT CMAKE_SYSTEM_NAME STREQUAL "Zephyr")
 endif()
 
 if(LIBZMQ_FOUND)
-  add_library(if_zmq OBJECT csp_if_zmqhub.c)
+  add_library(if_zmq OBJECT csp_if_zmq.c)
   target_include_directories(if_zmq PRIVATE
     ${csp_inc}
     ${LIBZMQ_INCLUDE_DIRS})
