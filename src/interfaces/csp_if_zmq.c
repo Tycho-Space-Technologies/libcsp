@@ -1,12 +1,17 @@
 
 
 #include <csp/interfaces/csp_if_zmq.h>
+#include <csp/csp_buffer.h>
 #include <zmq.h>
 
 #include <stddef.h>
 #include <sys/types.h>
 
 #include <assert.h>
+
+static size_t pck_size(csp_packet_t * packet) {
+	return CSP_BUFFER_PACKET_OVERHEAD + packet->length;
+}
 
 /* TODO: via */
 static int gen_nexthop(csp_iface_t * iface, uint16_t via, csp_packet_t * packet, int from_me) {
@@ -31,19 +36,19 @@ static void * gen_worker(void * param) {
 
 	for (;;) {
 		/* Packets ready in the TX queue, send to connected peer */
-		if (csp_queue_dequeue(ifdata->queue, ifdata->buffer, 0) == CSP_QUEUE_OK) {
-			ssize_t status = driver->write(driver, ifdata->buffer,
-										   csp_buffer_size());
+		if (csp_queue_dequeue(ifdata->queue, &ifdata->packet_buffer, 0) == CSP_QUEUE_OK) {
+			ssize_t status = driver->write(driver, &ifdata->packet_buffer,
+										   pck_size(&ifdata->packet_buffer));
 
 			if (status < 0) {
-				csp_print("Unable to send %i\n", -status);
+				csp_print("Unable to send packet (error %i)\n", -status);
 			}
 		}
 
 		/* Incoming packets, add them to CSP system */
-		ssize_t recv_size = driver->read(driver, ifdata->buffer, csp_buffer_size());
+		size_t recv_size = driver->read(driver, &ifdata->packet_buffer, csp_buffer_size());
 		if (recv_size > 0) {
-			csp_packet_t * copy = csp_buffer_clone(ifdata->buffer);
+			csp_packet_t * copy = csp_buffer_clone(&ifdata->packet_buffer);
 
 			if (copy == NULL) {
 				csp_print("Unable to clone incoming packet\n");

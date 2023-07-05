@@ -24,7 +24,7 @@ typedef struct csp_if_generic_data_s {
 	csp_queue_handle_t queue;
 	pthread_t worker;
 
-	uint8_t * buffer;
+	csp_packet_t packet_buffer;
 } csp_if_generic_data_t;
 
 /**
