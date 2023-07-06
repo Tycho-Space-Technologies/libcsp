@@ -73,9 +73,9 @@ static void pycsp_free_csp_conn(PyObject * obj) {
 }
 
 static void pycsp_free_csp_socket(PyObject * obj) {
-	csp_conn_t * socket = (csp_conn_t *)get_obj_as_socket(obj, true);
+	csp_socket_t * socket = get_obj_as_socket(obj, true);
 	if (socket) {
-		csp_close(socket);
+		PyMem_RawFree(socket);
 	}
 	PyCapsule_SetPointer(obj, &CSP_POINTER_HAS_BEEN_FREED);
 }
@@ -102,7 +102,8 @@ static PyObject * pycsp_service_handler(PyObject * self, PyObject * args) {
 
 static PyObject * pycsp_init(PyObject * self, PyObject * args) {
 
-	if (!PyArg_ParseTuple(args, "bsss", &csp_conf.address, &csp_conf.hostname, &csp_conf.model, &csp_conf.revision)) {
+	if (!PyArg_ParseTuple(args, "sss|b", &csp_conf.hostname, &csp_conf.model,
+						  &csp_conf.revision, &csp_conf.version)) {
 		return NULL;
 	}
 
@@ -129,10 +130,16 @@ static PyObject * pycsp_socket(PyObject * self, PyObject * args) {
 		return NULL;  // TypeError is thrown
 	}
 
-	csp_socket_t socket = {0};
-	socket.opts = opts;
+	csp_socket_t * socket = PyMem_RawMalloc(sizeof(*socket));
 
-	return PyCapsule_New((void *)&socket, SOCKET_CAPSULE, pycsp_free_csp_socket);
+	if (socket == NULL) {
+		return PyErr_NoMemory();
+	}
+
+	memset(socket, 0, sizeof(*socket));
+	socket->opts = opts;
+
+	return PyCapsule_New((void *)socket, SOCKET_CAPSULE, pycsp_free_csp_socket);
 }
 
 static PyObject * pycsp_accept(PyObject * self, PyObject * args) {
@@ -579,7 +586,6 @@ static PyObject * pycsp_rdp_get_opt(PyObject * self, PyObject * args) {
 						 ack_timeout,
 						 ack_delay_count);
 }
-
 
 static PyObject * pycsp_rtable_set(PyObject * self, PyObject * args) {
 	uint16_t node;
