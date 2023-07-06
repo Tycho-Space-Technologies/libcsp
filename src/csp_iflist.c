@@ -26,7 +26,7 @@ int csp_iflist_is_within_subnet(uint16_t addr, csp_iface_t * ifc) {
 	if (ifc == NULL) {
 		return 0;
 	}
-	
+
 	uint16_t netmask = ((1 << ifc->netmask) - 1) << (csp_id_get_host_bits() - ifc->netmask);
 	uint16_t network_a = ifc->addr & netmask;
 	uint16_t network_b = addr & netmask;
@@ -36,7 +36,6 @@ int csp_iflist_is_within_subnet(uint16_t addr, csp_iface_t * ifc) {
 	} else {
 		return 0;
 	}
-
 }
 
 csp_iface_t * csp_iflist_get_by_subnet(uint16_t addr, csp_iface_t * ifc) {
@@ -45,7 +44,7 @@ csp_iface_t * csp_iflist_get_by_subnet(uint16_t addr, csp_iface_t * ifc) {
 	if (ifc == NULL) {
 		ifc = interfaces;
 
-	/* Otherwise, continue from user defined ifc */
+		/* Otherwise, continue from user defined ifc */
 	} else {
 		ifc = ifc->next;
 	}
@@ -66,7 +65,6 @@ csp_iface_t * csp_iflist_get_by_subnet(uint16_t addr, csp_iface_t * ifc) {
 	}
 
 	return NULL;
-
 }
 
 csp_iface_t * csp_iflist_get_by_addr(uint16_t addr) {
@@ -80,7 +78,6 @@ csp_iface_t * csp_iflist_get_by_addr(uint16_t addr) {
 	}
 
 	return NULL;
-
 }
 
 csp_iface_t * csp_iflist_get_by_name(const char * name) {
@@ -96,7 +93,7 @@ csp_iface_t * csp_iflist_get_by_name(const char * name) {
 
 csp_iface_t * csp_iflist_get_by_index(int idx) {
 	csp_iface_t * ifc = interfaces;
-	while(ifc && idx--) {
+	while (ifc && idx--) {
 		ifc = ifc->next;
 	}
 	return ifc;
@@ -126,11 +123,29 @@ int csp_iflist_add(csp_iface_t * ifc) {
 	return CSP_ERR_NONE;
 }
 
+void csp_iflist_remove(csp_iface_t * ifc) {
+	if (ifc == NULL) {
+		return;
+	}
+
+	if (ifc == interfaces) {
+		interfaces = ifc->next;
+	} else {
+		for (csp_iface_t * cur = interfaces; cur; cur = cur->next) {
+			if (cur->next == ifc) {
+				cur->next = ifc->next;
+			}
+		}
+	}
+
+	ifc->next = NULL;
+}
+
 csp_iface_t * csp_iflist_get(void) {
 	return interfaces;
 }
 
-unsigned long csp_bytesize(unsigned long bytes, char *postfix) {
+unsigned long csp_bytesize(unsigned long bytes, char * postfix) {
 	unsigned long size;
 
 	if (bytes >= (1024 * 1024)) {
@@ -157,9 +172,12 @@ void csp_iflist_print(void) {
 	while (i) {
 		tx = csp_bytesize(i->txbytes, &tx_postfix);
 		rx = csp_bytesize(i->rxbytes, &rx_postfix);
-		csp_print("%-10s addr: %"PRIu16" netmask: %"PRIu16" mtu: %"PRIu16"\r\n"
-				  "           tx: %05" PRIu32 " rx: %05" PRIu32 " txe: %05" PRIu32 " rxe: %05" PRIu32 "\r\n"
-				  "           drop: %05" PRIu32 " autherr: %05" PRIu32 " frame: %05" PRIu32 "\r\n"
+		csp_print("%-10s addr: %" PRIu16 " netmask: %" PRIu16 " mtu: %" PRIu16
+				  "\r\n"
+				  "           tx: %05" PRIu32 " rx: %05" PRIu32 " txe: %05" PRIu32 " rxe: %05" PRIu32
+				  "\r\n"
+				  "           drop: %05" PRIu32 " autherr: %05" PRIu32 " frame: %05" PRIu32
+				  "\r\n"
 				  "           txb: %" PRIu32 " (%" PRIu32 "%c) rxb: %" PRIu32 " (%" PRIu32 "%c) \r\n\r\n",
 				  i->name, i->addr, i->netmask, i->mtu, i->tx, i->rx, i->tx_error, i->rx_error, i->drop,
 				  i->autherr, i->frame, i->txbytes, tx, tx_postfix, i->rxbytes, rx, rx_postfix);
