@@ -3,6 +3,7 @@ target_sources(csp PRIVATE
   csp_if_kiss.c
   csp_if_i2c.c
   csp_if_tun.c
+  csp_if_gen.c
   )
 
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "Zephyr")
@@ -13,7 +14,7 @@ if(NOT CMAKE_SYSTEM_NAME STREQUAL "Zephyr")
 endif()
 
 if(LIBZMQ_FOUND)
-  add_library(if_zmq OBJECT csp_if_zmq.c)
+  add_library(if_zmq OBJECT csp_if_zmqhub.c)
   target_include_directories(if_zmq PRIVATE
     ${csp_inc}
     ${LIBZMQ_INCLUDE_DIRS})

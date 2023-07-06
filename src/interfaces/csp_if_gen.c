@@ -1,6 +1,6 @@
 
 
-#include <csp/interfaces/csp_if_zmq.h>
+#include <csp/interfaces/csp_if_gen.h>
 #include <csp/csp_buffer.h>
 #include <zmq.h>
 
@@ -15,7 +15,7 @@ static size_t pck_size(csp_packet_t * packet) {
 
 /* TODO: via */
 static int gen_nexthop(csp_iface_t * iface, uint16_t via, csp_packet_t * packet, int from_me) {
-	struct csp_if_generic_data_s * ifdata = iface->interface_data;
+	struct csp_if_gen_data_s * ifdata = iface->interface_data;
 
 	if (csp_queue_enqueue(ifdata->queue, packet, 0) != CSP_QUEUE_OK) {
 		return CSP_ERR_NOMEM;
@@ -31,8 +31,8 @@ static void * gen_worker(void * param) {
 	(void)param;
 
 	csp_iface_t * iface = param;
-	csp_if_generic_data_t * ifdata = iface->interface_data;
-	csp_if_generic_driver_t * driver = iface->driver_data;
+	csp_if_gen_data_t * ifdata = iface->interface_data;
+	csp_if_gen_driver_t * driver = iface->driver_data;
 
 	for (;;) {
 		/* Packets ready in the TX queue, send to connected peer */
@@ -61,9 +61,9 @@ static void * gen_worker(void * param) {
 	return NULL;
 }
 
-int csp_if_generic_init(const char * name, csp_iface_t * iface,
-						csp_if_generic_data_t * data,
-						csp_if_generic_driver_t * driver) {
+int csp_if_gen_init(const char * name, csp_iface_t * iface,
+					csp_if_gen_data_t * data,
+					csp_if_gen_driver_t * driver) {
 	if (driver == NULL) {
 		return CSP_ERR_INVAL;
 	}

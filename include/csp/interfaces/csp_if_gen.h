@@ -8,24 +8,24 @@
 /**
  * @brief Generic driver. This needs to be created by the user
  */
-typedef struct csp_if_generic_driver_s {
-	ssize_t (*write)(struct csp_if_generic_driver_s *, void * src, size_t size);
-	ssize_t (*read)(struct csp_if_generic_driver_s *, void * dst, size_t size);
-	void (*cleanup)(struct csp_if_generic_driver_s *);
+typedef struct csp_if_gen_driver_s {
+	ssize_t (*write)(struct csp_if_gen_driver_s *, void * src, size_t size);
+	ssize_t (*read)(struct csp_if_gen_driver_s *, void * dst, size_t size);
+	void (*cleanup)(struct csp_if_gen_driver_s *);
 
 	void * data;
-} csp_if_generic_driver_t;
+} csp_if_gen_driver_t;
 
 /**
  * @brief Generic interface data. This only requires allocaton of its members, which
  * needs to be done by the user
  */
-typedef struct csp_if_generic_data_s {
+typedef struct csp_if_gen_data_s {
 	csp_queue_handle_t queue;
 	pthread_t worker;
 
 	csp_packet_t packet_buffer;
-} csp_if_generic_data_t;
+} csp_if_gen_data_t;
 
 /**
  * @brief Initialize a generic interface @p iface with name @p name. @p data
@@ -37,6 +37,6 @@ typedef struct csp_if_generic_data_s {
  * @param driver
  * @return int CSP_ERR_NONE on success, CSP error code otherwise
  */
-int csp_if_generic_init(const char * name, csp_iface_t * iface,
-						csp_if_generic_data_t * data,
-						csp_if_generic_driver_t * driver);
+int csp_if_gen_init(const char * name, csp_iface_t * iface,
+					csp_if_gen_data_t * data,
+					csp_if_gen_driver_t * driver);
