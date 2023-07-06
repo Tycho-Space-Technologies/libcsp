@@ -77,3 +77,11 @@ int csp_if_gen_init(const char * name, csp_iface_t * iface,
 
 	return CSP_ERR_NONE;
 }
+
+void csp_if_gen_deinit(csp_iface_t * iface) {
+	csp_if_gen_driver_t * driver = iface->driver_data;
+	if (driver != NULL) {
+		driver->cleanup(driver);
+	}
+	csp_iflist_remove(iface);
+}

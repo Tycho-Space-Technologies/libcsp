@@ -39,6 +39,14 @@ int csp_if_gen_init(const char * name, csp_iface_t * iface,
 					csp_if_gen_driver_t * driver);
 
 /**
+ * @brief Perform necessary cleanup on the iface, including removing it from
+ * the interface list.
+ *
+ * @param iface
+ */
+void csp_if_gen_deinit(csp_iface_t * iface);
+
+/**
  * @brief Task handling sending and recieving through the associated
  * generic driver
  *
