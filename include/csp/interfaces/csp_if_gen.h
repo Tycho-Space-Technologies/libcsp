@@ -2,7 +2,6 @@
 
 #include <csp/csp.h>
 #include <csp/arch/csp_queue.h>
-#include <pthread.h>
 #include <sys/types.h>
 
 /**
@@ -22,8 +21,6 @@ typedef struct csp_if_gen_driver_s {
  */
 typedef struct csp_if_gen_data_s {
 	csp_queue_handle_t queue;
-	pthread_t worker;
-
 	csp_packet_t packet_buffer;
 } csp_if_gen_data_t;
 
@@ -40,3 +37,12 @@ typedef struct csp_if_gen_data_s {
 int csp_if_gen_init(const char * name, csp_iface_t * iface,
 					csp_if_gen_data_t * data,
 					csp_if_gen_driver_t * driver);
+
+/**
+ * @brief Task handling sending and recieving through the associated
+ * generic driver
+ *
+ * @param iface Interface
+ * @return void*
+ */
+void * csp_if_gen_task(void * iface);

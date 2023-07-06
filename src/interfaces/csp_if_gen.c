@@ -27,9 +27,7 @@ static int gen_nexthop(csp_iface_t * iface, uint16_t via, csp_packet_t * packet,
 /* Worker thread that listens for incoming messages and adds them to the CSP
  * queue.
  */
-static void * gen_worker(void * param) {
-	(void)param;
-
+void * csp_if_gen_task(void * param) {
 	csp_iface_t * iface = param;
 	csp_if_gen_data_t * ifdata = iface->interface_data;
 	csp_if_gen_driver_t * driver = iface->driver_data;
@@ -37,8 +35,8 @@ static void * gen_worker(void * param) {
 	for (;;) {
 		/* Packets ready in the TX queue, send to connected peer */
 		if (csp_queue_dequeue(ifdata->queue, &ifdata->packet_buffer, 0) == CSP_QUEUE_OK) {
-			ssize_t status = driver->write(driver, &ifdata->packet_buffer,
-										   pck_size(&ifdata->packet_buffer));
+			size_t size = pck_size(&ifdata->packet_buffer);
+			ssize_t status = driver->write(driver, &ifdata->packet_buffer, size);
 
 			if (status < 0) {
 				csp_print("Unable to send packet (error %i)\n", -status);
@@ -74,8 +72,6 @@ int csp_if_gen_init(const char * name, csp_iface_t * iface,
 		.name = name,
 		.nexthop = gen_nexthop,
 	};
-
-	pthread_create(&data->worker, NULL, gen_worker, iface);
 
 	csp_iflist_add(iface);
 
