@@ -20,8 +20,12 @@ typedef struct csp_if_gen_driver_s {
  * needs to be done by the user
  */
 typedef struct csp_if_gen_data_s {
+	/* TX queue */
 	csp_queue_handle_t queue;
-	csp_packet_t packet_buffer;
+
+	/* Buffer for temporary reading and writing. Must be able to
+	 * hold atleast csp_buffer_size() */
+	void * buf;
 } csp_if_gen_data_t;
 
 /**
