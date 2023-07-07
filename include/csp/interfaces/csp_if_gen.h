@@ -33,12 +33,13 @@ typedef struct csp_if_gen_data_s {
  * and @p driver need to be created and initialized by the user.
  *
  * @param name
+ * @param addr
  * @param iface
  * @param data
  * @param driver
  * @return int CSP_ERR_NONE on success, CSP error code otherwise
  */
-int csp_if_gen_init(const char * name, csp_iface_t * iface,
+int csp_if_gen_init(const char * name, uint16_t addr, csp_iface_t * iface,
 					csp_if_gen_data_t * data,
 					csp_if_gen_driver_t * driver);
 
@@ -54,7 +55,7 @@ void csp_if_gen_deinit(csp_iface_t * iface);
  * @brief Task handling sending and recieving through the associated
  * generic driver
  *
- * @param iface Interface
+ * @param param Interface
  * @return void*
  */
-void * csp_if_gen_task(void * iface);
+void * csp_if_gen_task(void * param);

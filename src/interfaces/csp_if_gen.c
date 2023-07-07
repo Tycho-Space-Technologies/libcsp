@@ -95,7 +95,7 @@ void * csp_if_gen_task(void * param) {
 	return NULL;
 }
 
-int csp_if_gen_init(const char * name, csp_iface_t * iface,
+int csp_if_gen_init(const char * name, uint16_t addr, csp_iface_t * iface,
 					csp_if_gen_data_t * data,
 					csp_if_gen_driver_t * driver) {
 	if (driver == NULL) {
@@ -107,6 +107,7 @@ int csp_if_gen_init(const char * name, csp_iface_t * iface,
 		.interface_data = data,
 		.name = name,
 		.nexthop = gen_nexthop,
+		.addr = addr,
 	};
 
 	csp_iflist_add(iface);
