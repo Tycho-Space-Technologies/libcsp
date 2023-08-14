@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include <csp/csp_endian.h>
 #include <csp/csp_crc32.h>
+#include <csp/arch/csp_malloc.h>
 
 #define FEND  		0xC0
 #define FESC  		0xDB
@@ -48,27 +49,52 @@ int csp_kiss_tx(const csp_route_t * ifroute, csp_packet_t * packet) {
 	packet->id.ext = csp_hton32(packet->id.ext);
 	packet->length += sizeof(packet->id.ext);
 
-	/* Transmit data */
-        const unsigned char start[] = {FEND, TNC_DATA};
-        const unsigned char esc_end[] = {FESC, TFEND};
-        const unsigned char esc_esc[] = {FESC, TFESC};
-        const unsigned char * data = (unsigned char *) &packet->id.ext;
-        ifdata->tx_func(driver, start, sizeof(start));
-	for (unsigned int i = 0; i < packet->length; i++, ++data) {
-		if (*data == FEND) {
-                    ifdata->tx_func(driver, esc_end, sizeof(esc_end));
-                    continue;
-		}
-                if (*data == FESC) {
-                    ifdata->tx_func(driver, esc_esc, sizeof(esc_esc));
-                    continue;
-		}
-		ifdata->tx_func(driver, data, 1);
+	// CSP KISS protocol constants
+	const unsigned char start[] = {FEND, TNC_DATA};
+	const unsigned char esc_end[] = {FESC, TFEND};
+	const unsigned char esc_esc[] = {FESC, TFESC};
+	const unsigned char stop[] = {FEND};
+
+	// Pointer to data that will be transmitted
+	const unsigned char * data = (unsigned char *) &packet->id.ext;
+
+	// Create output buffer for KISS transmission
+	unsigned int buffer_length = 0;
+	unsigned char *buffer = csp_malloc(2*packet->length + sizeof(start) + sizeof(stop));
+	if (buffer == NULL) {
+		csp_log_error("Failed to allocate memory for KISS output buffer");
+		return CSP_ERR_NOMEM;
 	}
-        const unsigned char stop[] = {FEND};
-        ifdata->tx_func(driver, stop, sizeof(stop));
+
+	// Add start of frame
+	memcpy(buffer, start, sizeof(start));
+	buffer_length += sizeof(start);
+
+	// Add all data to buffer, and add escape characters for FEND and FESC
+	for (unsigned int i = 0; i < packet->length; i++, ++data) {
+		if (*data == FEND) { // Escape FEND character
+			memcpy(&buffer[buffer_length], esc_end, sizeof(esc_end));
+			buffer_length += sizeof(esc_end);
+		}
+		else if (*data == FESC) { // Escape FESC character
+			memcpy(&buffer[buffer_length], esc_esc, sizeof(esc_esc));
+			buffer_length += sizeof(esc_esc);
+		}
+		else { // Add normal data to buffer
+			buffer[buffer_length] = *data;
+			buffer_length++;
+		}
+	}
+
+	// Add end of frame
+	memcpy(&buffer[buffer_length], stop, sizeof(stop));
+	buffer_length += sizeof(stop);
+
+	// Transmit output buffer
+	ifdata->tx_func(driver, buffer, buffer_length);
 
 	/* Free data */
+	csp_free(buffer);
 	csp_buffer_free(packet);
 
 	/* Unlock */

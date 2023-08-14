@@ -26,7 +26,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <time.h>
 #include <unistd.h>
 #include <errno.h>
-#include <termios.h>
+#include <asm/termbits.h>
+#include <sys/ioctl.h>
 #include <fcntl.h>
 #include <sys/time.h>
 
@@ -181,32 +182,30 @@ int csp_usart_write(csp_usart_fd_t fd, const void * data, size_t data_length) {
 
 int csp_usart_open(const csp_usart_conf_t *conf, csp_usart_callback_t rx_callback, void * user_data, csp_usart_fd_t * return_fd) {
 
-	int brate = 0;
+	// Check if baudrate is among the default baudrates in termios
 	switch(conf->baudrate) {
-		case 4800:    brate=B4800;    break;
-		case 9600:    brate=B9600;    break;
-		case 19200:   brate=B19200;   break;
-		case 38400:   brate=B38400;   break;
-		case 57600:   brate=B57600;   break;
-		case 115200:  brate=B115200;  break;
-		case 230400:  brate=B230400;  break;
-#if (CSP_MACOSX == 0)
-		case 460800:  brate=B460800;  break;
-		case 500000:  brate=B500000;  break;
-		case 576000:  brate=B576000;  break;
-		case 921600:  brate=B921600;  break;
-		case 1000000: brate=B1000000; break;
-		case 1152000: brate=B1152000; break;
-		case 1500000: brate=B1500000; break;
-		case 2000000: brate=B2000000; break;
-		case 2500000: brate=B2500000; break;
-		case 3000000: brate=B3000000; break;
-		case 3500000: brate=B3500000; break;
-		case 4000000: brate=B4000000; break;
-#endif
+		case 4800:    break;
+		case 9600:    break;
+		case 19200:   break;
+		case 38400:   break;
+		case 57600:   break;
+		case 115200:  break;
+		case 230400:  break;
+		case 460800:  break;
+		case 500000:  break;
+		case 576000:  break;
+		case 921600:  break;
+		case 1000000: break;
+		case 1152000: break;
+		case 1500000: break;
+		case 2000000: break;
+		case 2500000: break;
+		case 3000000: break;
+		case 3500000: break;
+		case 4000000: break;
+		case 6250000: break;
 		default:
-			csp_log_error("%s: Unsupported baudrate: %u", __FUNCTION__, conf->baudrate);
-			return CSP_ERR_INVAL;
+			csp_log_warn("%s: Using non-default baudrate: %u", __FUNCTION__, conf->baudrate);
 	}
 
 	int fd = open(conf->device, O_RDWR | O_NOCTTY | O_NONBLOCK);
@@ -215,10 +214,21 @@ int csp_usart_open(const csp_usart_conf_t *conf, csp_usart_callback_t rx_callbac
 		return CSP_ERR_INVAL;
 	}
 
-	struct termios options;
-	tcgetattr(fd, &options);
-	cfsetispeed(&options, brate);
-	cfsetospeed(&options, brate);
+	struct termios2 options;
+	// Get serial options
+	if (ioctl(fd, TCGETS2, &options)) {
+		csp_log_error("%s: Failed to get attributes on device: [%s], errno: %s", __FUNCTION__, conf->device, strerror(errno));
+		close(fd);
+		return CSP_ERR_DRIVER;
+	}
+	// Set baudrate
+	options.c_cflag &= ~CBAUD;
+	options.c_cflag |= BOTHER;
+	options.c_ispeed = conf->baudrate;
+	options.c_cflag &= ~(CBAUD << IBSHIFT);
+	options.c_cflag |= BOTHER << IBSHIFT;
+	options.c_ospeed = conf->baudrate;
+	// Set other serial options
 	options.c_cflag |= (CLOCAL | CREAD);
 	options.c_cflag &= ~PARENB;
 	options.c_cflag &= ~CSTOPB;
@@ -229,8 +239,8 @@ int csp_usart_open(const csp_usart_conf_t *conf, csp_usart_callback_t rx_callbac
 	options.c_oflag &= ~(OCRNL | ONLCR | ONLRET | ONOCR | OFILL | OPOST);
 	options.c_cc[VTIME] = 0;
 	options.c_cc[VMIN] = 1;
-	/* tcsetattr() succeeds if just one attribute was changed, should read back attributes and check all has been changed */
-	if (tcsetattr(fd, TCSANOW, &options) != 0) {
+	/* TCSETS2 succeeds if just one attribute was changed, should read back attributes and check all has been changed */
+	if (ioctl(fd, TCSETS2, &options) != 0) {
 		csp_log_error("%s: Failed to set attributes on device: [%s], errno: %s", __FUNCTION__, conf->device, strerror(errno));
 		close(fd);
 		return CSP_ERR_DRIVER;
@@ -238,7 +248,7 @@ int csp_usart_open(const csp_usart_conf_t *conf, csp_usart_callback_t rx_callbac
 	fcntl(fd, F_SETFL, 0);
 
 	/* Flush old transmissions */
-	if (tcflush(fd, TCIOFLUSH) != 0) {
+	if (ioctl(fd, TCFLSH, TCIOFLUSH) != 0) {
 		csp_log_error("%s: Error flushing device: [%s], errno: %s", __FUNCTION__, conf->device, strerror(errno));
 		close(fd);
 		return CSP_ERR_DRIVER;
