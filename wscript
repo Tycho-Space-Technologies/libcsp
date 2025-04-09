@@ -170,7 +170,6 @@ def configure(ctx):
     
     # Add ZMQ
     if ctx.options.enable_if_zmqhub:
-        ctx.env.append_unique('FILES_CSP', 'src/interfaces/csp_if_zmqhub.c')
         ctx.check_cfg(package='libzmq', args='--cflags --libs', define_name='CSP_HAVE_LIBZMQ')
         ctx.env.append_unique('LIBS', ctx.env.LIB_LIBZMQ)
         ctx.env.append_unique('FILES_CSP', 'src/interfaces/csp_if_zmqhub.c')
