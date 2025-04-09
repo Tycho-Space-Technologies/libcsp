@@ -297,7 +297,7 @@ int csp_send(csp_conn_t * conn, csp_packet_t * packet) {
 
 #if (CSP_USE_RDP)
 	if (conn->idout.flags & CSP_FRDP) {
-		int rdp_send_return = csp_rdp_send(conn, packet)
+		int rdp_send_return = csp_rdp_send(conn, packet);
 		if (rdp_send_return != CSP_ERR_NONE) {
 			csp_buffer_free(packet);
 			return rdp_send_return;
