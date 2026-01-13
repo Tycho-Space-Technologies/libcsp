@@ -370,7 +370,7 @@ int csp_transaction_persistent_reconnect(csp_conn_t * conn, uint8_t prio, uint32
 
 	while (attempts < reconnects) {
 		len = csp_transaction_persistent_retry(conn, timeout, outbuf, outlen, inbuf, inlen, retries);
-		if (len != 0) {
+		if (len == 0) {
 			conn = csp_reconnect(conn, prio, timeout, opts);
 			if (conn == NULL) {
 				return CSP_ERR_TIMEDOUT;
